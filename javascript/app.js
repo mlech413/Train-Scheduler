@@ -74,7 +74,7 @@ database.ref().on("child_added", function(childSnapshot, prevChildKey) {
     console.log(frequency);
   
     // Prettify the employee start
-    var trainStartPretty = moment.unix(firstTrainTime).format("HH:mm");
+    var trainStartConverted = moment.unix(firstTrainTime).format("HH:mm");
   
     // Calculate the months worked using hardcore math
     // To calculate the months worked
@@ -88,7 +88,7 @@ database.ref().on("child_added", function(childSnapshot, prevChildKey) {
     // Add each train's data into the table
     console.log("write to table");
     $("#train-table > tbody").append("<tr><td>" + trainName + "</td><td>" + destination + "</td><td>" +
-    frequency + "</td><td>" + trainStartPretty + "</td><td>" + 0 + "</td></tr>");
+    frequency + "</td><td>" + trainStartConverted + "</td><td>" + 0 + "</td></tr>");
 });
   
   // Example Time Math
