@@ -1,15 +1,3 @@
-/* global firebase moment */
-// Steps to complete:
-
-// 1. Initialize Firebase
-// 2. Create button for adding new employees - then update the html + update the database
-// 3. Create a way to retrieve employees from the employee database.
-// 4. Create a way to calculate the months worked. Using difference between start and current time.
-//    Then use moment.js formatting to set difference in months.
-// 5. Calculate Total billed
-
-// 1. Initialize Firebase
-
 var config = {
     apiKey: "AIzaSyDNzka2dcW9d-f1EZ2uasE882ZSYyHsFpA",
     authDomain: "schedule-50d23.firebaseapp.com",
@@ -22,43 +10,71 @@ var config = {
   
 var database = firebase.database();
   
-  // 2. Button for adding Employees
 $("#add-train-btn").on("click", function(event) {
     event.preventDefault();
   
-    // Grabs user input
     var trainName = $("#train-name-input").val().trim();
     var destination = $("#destination-input").val().trim();
     var firstTrainTime = moment($("#first-train-time-input").val().trim(), "HH:mm").format("X");
     var frequency = $("#frequency-input").val().trim();
-  
+
+    // variables for text input validations
+    var firstTrainTimeEval = moment.unix(firstTrainTime).format("HH:mm");
+    var firstTrainTimeEvalStr = String(firstTrainTimeEval);
+    var hours = firstTrainTimeEvalStr.charAt(0) + firstTrainTimeEvalStr.charAt(1);
+    var mins = firstTrainTimeEvalStr.charAt(3) + firstTrainTimeEvalStr.charAt(4);
+
+    // validations for input box entries
+    if (!trainName) {
+    alert("Please enter a valid 'Train Name'");
+    }
+    else if (!destination) {
+        alert("Please enter a valid 'Destination'");
+    }
+    else if (!firstTrainTimeEvalStr) {
+        alert("Please enter a valid 'First Train Time'");
+    }
+    else if (hours < 01 || hours > 23 ) {
+        alert("Please enter 'First Train Time' in military time format (HH:mm)");
+    }
+    else if (firstTrainTimeEvalStr.charAt(2) != ":") {
+        alert("Please enter 'First Train Time' in military time format (HH:mm)");
+    }
+    else if (mins < 00 || mins > 59 ) {
+        alert("Please enter 'First Train Time' in military time format (HH:mm)");
+    }
+    else if (!frequency) {
+        alert("Please enter a valid 'Frequency'");
+    }
+    else if (frequency < 0 || frequency > 999) {
+        alert("Please enter a valid 'Frequency'");
+    }
+    else {
+    // push to firebase
     var newEmp = {
         name: trainName,
         dest: destination,
         firstTrain: firstTrainTime,
         freq: frequency
-    };
-  
-    // Uploads employee data to the database
-    database.ref().push(newEmp);
-  
-    // Logs everything to console
-    console.log(trainName.name);
-    console.log(destination.dest);
-    console.log(firstTrainTime.firstTrain);
-    console.log(frequency.freq);
-  
-    // Alert
-    alert("New train added!");
-  
-    // Clears all of the text-boxes
-    $("#train-name-input").val("");
-    $("#destination-input").val("");
-    $("#first-train-time-input").val("");
-    $("#frequency-input").val("");
+        };
+    
+        database.ref().push(newEmp);
+    
+        console.log(trainName.name);
+        console.log(destination.dest);
+        console.log(firstTrainTime.firstTrain);
+        console.log(frequency.freq);
+    
+        alert("New train added!");
+    
+        // clear out the input boxes
+        $("#train-name-input").val("");
+        $("#destination-input").val("");
+        $("#first-train-time-input").val("");
+        $("#frequency-input").val("");
+    }
 });
   
-  // 3. Create Firebase event for adding employee to the database and a row in the html when a user adds an entry
 database.ref().on("child_added", function(childSnapshot, prevChildKey) {
   
     console.log(childSnapshot.val());
@@ -73,29 +89,53 @@ database.ref().on("child_added", function(childSnapshot, prevChildKey) {
     console.log(firstTrainTime);
     console.log(frequency);
   
-    // Prettify the employee start
-    var trainStartConverted = moment.unix(firstTrainTime).format("HH:mm");
-  
-    // Calculate the months worked using hardcore math
-    // To calculate the months worked
-    // var empMonths = moment().diff(moment(empStart, "X"), "months");
-    // console.log(empMonths);
-  
-    // Calculate the total billed rate
-    // var empBilled = empMonths * empRate;
-    // console.log(empBilled);
-  
-    // Add each train's data into the table
+    var firstTrainTimeConverted1 = moment.unix(firstTrainTime).format("HH:mm");
+    console.log("firstTrainTimeConverted1=" + firstTrainTimeConverted1);
+
+    console.log("TIME NOW=" + moment().format("HH:mm"));
+
+    // subtract a year so same day calculations work even regardless of earlier or later
+    var firstTimeConverted = moment(firstTrainTime, "HH:mm").subtract(1, "years");
+    console.log(firstTimeConverted);
+
+    // Difference between the times
+    var diffTime = -(moment().diff(moment.unix(firstTimeConverted), "minutes"));
+    console.log("diffTime=" + diffTime);
+
+    // get remainder of frequency
+    var remainder = diffTime % frequency;
+    console.log("remainder=" + remainder);
+
+    // remiander determines time until next train, and negative remainder here still valid but needs to be flipped so becomes positive
+    if (remainder < 0) {
+    var minutesUntilNext = remainder + frequency;
+    console.log("minutesUntilNext=" + minutesUntilNext);
+    }
+    else {
+      var minutesUntilNext = remainder - frequency;
+      console.log("minutesUntilNext=" + minutesUntilNext);
+    }
+
+    // if negative, it's earlier than current time, so add a full day of minutes to make it in the future
+    if (diffTime<0){
+      diffTime = diffTime += 1440;
+    }
+
+    // the remainder +1 becomes becomes the time reamining untuil the next train
+    var minutesAway = (remainder+=1);
+
+    // minutes until next train is determined already, so use it by adding to the next arrival, to get the next arrival time 
+    var nextArrival = "00:00";
+    nextArrival = moment().format("HH:mm");
+    nextArrival = moment(nextArrival, "HH:mm").add(minutesAway, "minutes");
+ 
+    nextArrival = moment(nextArrival, "HH:mm").format("HH:mm");
+    console.log("nextArrival=" + nextArrival);
+    
     console.log("write to table");
+
     $("#train-table > tbody").append("<tr><td>" + trainName + "</td><td>" + destination + "</td><td>" +
-    frequency + "</td><td>" + trainStartConverted + "</td><td>" + 0 + "</td></tr>");
+    frequency + "</td><td>" + firstTrainTimeConverted1 + "</td><td>" + nextArrival + "</td><td>" + minutesAway + "</td></tr>");
 });
-  
-  // Example Time Math
-  // -----------------------------------------------------------------------------
-  // Assume Employee start date of January 1, 2015
-  // Assume current date is March 1, 2016
-  
-  // We know that this is 15 months.
-  // Now we will create code in moment.js to confirm that any attempt we use meets this test case
+
   
