@@ -1,6 +1,6 @@
 # Train-Scheduler
 
-## Don't iss your train!
+## Don't miss your train!
 
 ### View the existing trains, and enter new ones.
 
